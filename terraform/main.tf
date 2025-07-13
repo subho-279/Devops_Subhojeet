@@ -4,6 +4,44 @@ resource "aws_s3_bucket" "artifact_bucket" {
   force_destroy = true
 }
 
+# 🔒 Secure S3: block public access
+resource "aws_s3_bucket_public_access_block" "artifact_block" {
+  bucket = aws_s3_bucket.artifact_bucket.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# 🔒 Enable bucket encryption
+resource "aws_s3_bucket_server_side_encryption_configuration" "artifact_encryption" {
+  bucket = aws_s3_bucket.artifact_bucket.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+# 🔒 Enable versioning
+resource "aws_s3_bucket_versioning" "artifact_versioning" {
+  bucket = aws_s3_bucket.artifact_bucket.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# 📝 Enable access logging (to same bucket)
+resource "aws_s3_bucket_logging" "artifact_logging" {
+  bucket = aws_s3_bucket.artifact_bucket.id
+
+  target_bucket = aws_s3_bucket.artifact_bucket.id
+  target_prefix = "logs/"
+}
+
 # CodeBuild project
 resource "aws_codebuild_project" "devops_build" {
   name          = "devops-build"
@@ -32,9 +70,17 @@ resource "aws_codebuild_project" "devops_build" {
 
 # EC2 instance for deployment
 resource "aws_instance" "devops_ec2" {
-  ami           = "ami-0c02fb55956c7d316"  # Amazon Linux 2 in us-east-1
+  ami           = "ami-0c02fb55956c7d316"
   instance_type = "t2.micro"
-  key_name      = "your-key-name"  # Replace with your actual key pair name
+  key_name      = "devops-key"
+
+  metadata_options {
+    http_tokens = "required"
+  }
+
+  root_block_device {
+    encrypted = true
+  }
 
   tags = {
     Name = "DevOpsEC2"
@@ -52,7 +98,6 @@ resource "aws_instance" "devops_ec2" {
               systemctl enable codedeploy-agent
               EOF
 }
-
 # CodeDeploy application & group
 resource "aws_codedeploy_app" "devops_app" {
   name             = "DevOpsApp"
