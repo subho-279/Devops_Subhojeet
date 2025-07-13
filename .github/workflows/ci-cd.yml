@@ -1,0 +1,52 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  devsecops:
+    name: DevSecOps Scan and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 🔍 Terraform Security Scan
+    - name: Run tfsec
+      uses: aquasecurity/tfsec-action@v1.0.0
+
+    # 🐳 Docker Build + Scan
+    - name: Build Docker image
+      run: docker build -t devops-app .
+
+    - name: Run Trivy scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: devops-app
+
+    # 🔐 Apply Sealed Secrets (if using Kubernetes)
+    - name: Install kubectl & kubeseal
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y kubectl
+        curl -s https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.23.0/kubeseal-linux-amd64 -L -o kubeseal
+        chmod +x kubeseal
+        sudo mv kubeseal /usr/local/bin/
+
+    - name: Apply sealed secrets
+      run: |
+        kubectl apply -f sealed-secrets/mysecret.sealed.yaml || echo "K8s not configured"
+
+    # ⚙️ Optional: Apply Terraform
+    - name: Terraform Deploy
+      run: |
+        cd terraform
+        terraform init
+        terraform validate
+        terraform apply -auto-approve
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: us-east-1
