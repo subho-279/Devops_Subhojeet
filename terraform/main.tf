@@ -1,6 +1,6 @@
 # S3 bucket for artifacts
 resource "aws_s3_bucket" "artifact_bucket" {
-  bucket        = var.artifact_bucket_name
+  bucket = "devops2025-artifacts-subhojeet123-0713"
   force_destroy = true
 }
 
