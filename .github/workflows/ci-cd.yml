@@ -45,7 +45,7 @@ jobs:
       run: |
         kubectl apply -f sealed-secrets/mysecret.sealed.yaml || echo "K8s not configured"
          # Clean previous Terraform cache (for version mismatch fix)
-         
+
     - name: Clean Terraform Cache
       run: rm -rf .terraform .terraform.lock.hcl
       working-directory: terraform
@@ -65,6 +65,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: us-east-1
       run: |
+        timeout 300
         terraform init
         terraform validate
         terraform apply -auto-approve
