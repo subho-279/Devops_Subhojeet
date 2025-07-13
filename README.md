@@ -59,7 +59,7 @@ The workflow runs on every push to `main`:
 |----------------------|--------------------------------|
 | `AWS_ACCESS_KEY_ID`  | AWS IAM user access key        |
 | `AWS_SECRET_ACCESS_KEY` | AWS IAM user secret          |
-| `GITHUB_TOKEN_VAL`   | GitHub PAT for CodePipeline    |
+| `TOKEN_VALUE`   | GitHub PAT for CodePipeline    |
 
 ---
 
