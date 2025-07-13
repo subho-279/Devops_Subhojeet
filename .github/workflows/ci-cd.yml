@@ -3,6 +3,7 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   devsecops:
@@ -13,25 +14,30 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 🔍 Terraform Security Scan
+    # 🔍 tfsec: Scan Terraform for security issues
     - name: Run tfsec
       uses: aquasecurity/tfsec-action@v1.0.0
+      with:
+        working_directory: terraform
+        soft_fail: false  # change to true if you want to allow warnings
 
-    # 🐳 Docker Build + Scan
+    # 🐳 Build Docker image (optional)
     - name: Build Docker image
       run: docker build -t devops-app .
+      working-directory: .
 
-    - name: Run Trivy scan
+    # 🔎 Trivy: Scan image for vulnerabilities
+    - name: Scan Docker image with Trivy
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: devops-app
 
-    # 🔐 Apply Sealed Secrets (if using Kubernetes)
+    # 🔐 Apply sealed secrets (optional)
     - name: Install kubectl & kubeseal
       run: |
         sudo apt-get update
         sudo apt-get install -y kubectl
-        curl -s https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.23.0/kubeseal-linux-amd64 -L -o kubeseal
+        curl -s -L -o kubeseal https://github.com/bitnami-labs/sealed-secrets/releases/download/v0.23.0/kubeseal-linux-amd64
         chmod +x kubeseal
         sudo mv kubeseal /usr/local/bin/
 
@@ -39,13 +45,13 @@ jobs:
       run: |
         kubectl apply -f sealed-secrets/mysecret.sealed.yaml || echo "K8s not configured"
 
-    # ⚙️ Optional: Apply Terraform
-    - name: Terraform Deploy
+    # ⚙️ Terraform Apply
+    - name: Terraform Apply
       run: |
-        cd terraform
         terraform init
         terraform validate
         terraform apply -auto-approve
+      working-directory: terraform
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
