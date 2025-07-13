@@ -44,6 +44,12 @@ jobs:
     - name: Apply sealed secrets
       run: |
         kubectl apply -f sealed-secrets/mysecret.sealed.yaml || echo "K8s not configured"
+         # Clean previous Terraform cache (for version mismatch fix)
+         
+    - name: Clean Terraform Cache
+      run: rm -rf .terraform .terraform.lock.hcl
+      working-directory: terraform
+
 
        # ✅ Set up Terraform
     - name: Set up Terraform
