@@ -65,7 +65,6 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: us-east-1
       run: |
-        timeout 300
-        terraform init
+        terraform init -upgrade
         terraform validate
-        terraform apply -auto-approve
+        timeout 300 terraform apply -auto-approve
